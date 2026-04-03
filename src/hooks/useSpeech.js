@@ -1,61 +1,57 @@
-import { useEffect, useRef, useCallback } from 'react'
-import { useSessionStore } from '../store'
+import { Component } from 'react'
 
-export function useSpeech() {
-  const recognitionRef = useRef(null)
-  const { setTranscript, setListening, transcript } = useSessionStore()
+export class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
 
-  const isSupported = typeof window !== 'undefined' &&
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
 
-  useEffect(() => {
-    if (!isSupported) return
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    const rec = new SR()
-    rec.continuous = true
-    rec.interimResults = true
-    rec.lang = 'en-US'
+  componentDidCatch(error, info) {
+    console.error('ErrorBoundary caught:', error, info)
+  }
 
-    let finalTranscript = ''
+  render() {
+    if (!this.state.hasError) return this.props.children
 
-    rec.onresult = (e) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript
-        if (e.results[i].isFinal) finalTranscript += t + ' '
-        else interim += t
-      }
-      setTranscript(finalTranscript + interim)
-    }
-
-    rec.onend = () => setListening(false)
-    rec.onerror = (e) => {
-      console.error('Speech error:', e.error)
-      setListening(false)
-    }
-
-    recognitionRef.current = rec
-    return () => { try { rec.stop() } catch {} }
-  }, [isSupported])
-
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current) return
-    setTranscript('')
-    try {
-      recognitionRef.current.start()
-      setListening(true)
-    } catch {}
-  }, [])
-
-  const stopListening = useCallback(() => {
-    if (!recognitionRef.current) return
-    try {
-      recognitionRef.current.stop()
-      setListening(false)
-    } catch {}
-  }, [])
-
-  const resetTranscript = useCallback(() => setTranscript(''), [])
-
-  return { isSupported, startListening, stopListening, resetTranscript, transcript }
+    return (
+      <div style={{
+        minHeight: '100vh', background: 'var(--bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24, textAlign: 'center',
+      }}>
+        <div style={{ maxWidth: 480 }}>
+          <p style={{ fontSize: 56, margin: '0 0 16px' }}>⚠️</p>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: 'white', margin: '0 0 10px' }}>
+            Something went wrong
+          </h1>
+          <p style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 24px', lineHeight: 1.6 }}>
+            An unexpected error occurred. Your session data is safe.
+          </p>
+          {this.state.error && (
+            <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 24, textAlign: 'left' }}>
+              <p style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--accent3)', margin: 0, wordBreak: 'break-all' }}>
+                {this.state.error.message}
+              </p>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-body)' }}>
+              Try again
+            </button>
+            <button
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = '/dashboard' }}
+              style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-body)' }}>
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 }
