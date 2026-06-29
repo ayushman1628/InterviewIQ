@@ -190,3 +190,87 @@ Return a JSON object with exactly these fields:
   const text = await callGemini(system, prompt, 800)
   return parseJSON(text)
 }
+
+// ── Rate resume ─────────────────────────────────────────────────
+export async function rateResume({ resumeText, targetRole, level }) {
+  const system = `You are an expert resume reviewer and career coach.
+Return ONLY valid JSON — no markdown, no explanation.`
+
+  const prompt = `Rate this resume for a ${targetRole || 'General'} role at ${level || 'Mid'} level.
+
+Resume:
+${resumeText}
+
+Return a JSON object with exactly these fields:
+- overall_score: number 0-100
+- grade: "A" | "B" | "C" | "D" | "F"
+- summary: string (2-3 sentences)
+- category_scores: {
+    "ats_score": number 0-100,
+    "content_score": number 0-100,
+    "impact_score": number 0-100,
+    "clarity_score": number 0-100,
+    "formatting_score": number 0-100
+  }
+- strengths: string[] (3 items)
+- improvements: string[] (4 items)
+- keyword_gaps: string[] (5 items)
+- rewrite_suggestions: string[] (3 items)`
+
+  const text = await callGemini(system, prompt, 1200)
+  return parseJSON(text)
+}
+
+// ── DSA questions ───────────────────────────────────────────────
+export async function generateDSAQuestions({ topic, difficulty, count }) {
+  const system = `You are a technical interviewer specialising in Data Structures and Algorithms.
+Generate real coding problems like LeetCode. Return ONLY valid JSON array — no markdown, no explanation.`
+
+  const topicLine = topic === 'all' ? 'Cover a variety of DSA topics.' : `Focus on: ${topic}.`
+  const diffLine  = difficulty === 'mixed'
+    ? 'Mix easy, medium, and hard difficulties.'
+    : `All problems should be ${difficulty} difficulty.`
+
+  const prompt = `Generate ${count} DSA coding problems.
+${topicLine}
+${diffLine}
+
+Return a JSON array where each object has:
+- id: string (p1, p2...)
+- question: string (full problem statement, clear and detailed)
+- topic: string (e.g. "Arrays", "Dynamic Programming")
+- difficulty: "easy" | "medium" | "hard"
+- examples: array of { input: string, output: string, explanation?: string } (2 examples)
+- constraints: string[] (2-4 constraints like "1 <= n <= 10^5")
+- time_minutes: number (suggested time)`
+
+  const text = await callGemini(system, prompt, 4000)
+  return parseJSON(text)
+}
+
+// ── Evaluate code submission ────────────────────────────────────
+export async function evaluateCode({ question, code, language, difficulty }) {
+  const system = `You are a senior engineer reviewing a DSA solution.
+Be specific about time/space complexity and correctness. Return ONLY valid JSON — no markdown.`
+
+  const prompt = `Problem: ${question}
+
+Candidate's ${language} solution:
+\`\`\`${language}
+${code}
+\`\`\`
+
+Evaluate this solution and return a JSON object with exactly:
+- score: number 0-10
+- grade: "A" | "B" | "C" | "D" | "F"
+- summary: string (2-3 sentences on correctness and approach)
+- time_complexity: string (e.g. "O(n log n)")
+- space_complexity: string (e.g. "O(n)")
+- is_correct: boolean
+- strengths: string[] (2-3 specific positives)
+- improvements: string[] (2-3 specific improvements)
+- optimal_approach: string (1-2 sentences on the best approach)`
+
+  const text = await callGemini(system, prompt, 800)
+  return parseJSON(text)
+}
