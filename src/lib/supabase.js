@@ -3,31 +3,30 @@
 //   VITE_SUPABASE_URL=https://xxxx.supabase.co
 //   VITE_SUPABASE_ANON_KEY=eyJhbG...
 
-const SUPABASE_URL     = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON    = import.meta.env.VITE_SUPABASE_ANON_KEY
-const isConfigured     = !!(SUPABASE_URL && SUPABASE_ANON)
+import { createClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+const isConfigured  = !!(SUPABASE_URL && SUPABASE_ANON)
 
 let supabase = null
 
-// Lazy-load Supabase only if configured
-async function getClient() {
+function getClient() {
   if (!isConfigured) return null
-  if (supabase) return supabase
-  try {
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON)
-    return supabase
-  } catch (e) {
-    console.warn('[supabase] Failed to load client:', e.message)
-    return null
-  }
+  if (!supabase) supabase = createClient(SUPABASE_URL, SUPABASE_ANON)
+  return supabase
+}
+
+export function isNetworkError(err) {
+  const msg = err?.message || String(err)
+  return /failed to fetch|load failed|networkerror|fetch|enotfound|getaddrinfo/i.test(msg)
 }
 
 export { isConfigured }
 
 // ── Auth ─────────────────────────────────────────────────────────
 export async function signUp({ email, password, name }) {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb) throw new Error('Supabase not configured')
 
   const { data, error } = await sb.auth.signUp({
@@ -39,7 +38,7 @@ export async function signUp({ email, password, name }) {
 }
 
 export async function signIn({ email, password }) {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb) throw new Error('Supabase not configured')
 
   const { data, error } = await sb.auth.signInWithPassword({ email, password })
@@ -48,20 +47,20 @@ export async function signIn({ email, password }) {
 }
 
 export async function signOut() {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb) return
   await sb.auth.signOut()
 }
 
 export async function getSession() {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb) return null
   const { data } = await sb.auth.getSession()
   return data?.session
 }
 
 export async function onAuthChange(callback) {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb) return () => {}
   const { data } = sb.auth.onAuthStateChange((_event, session) => {
     callback(session)
@@ -71,7 +70,7 @@ export async function onAuthChange(callback) {
 
 // ── Sessions DB ──────────────────────────────────────────────────
 export async function saveSessionToDB(session, userId) {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb || !userId) return null
 
   const { error } = await sb.from('sessions').upsert({
@@ -98,7 +97,7 @@ export async function saveSessionToDB(session, userId) {
 }
 
 export async function fetchSessionsFromDB(userId) {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb || !userId) return null
 
   const { data, error } = await sb
@@ -129,14 +128,14 @@ export async function fetchSessionsFromDB(userId) {
 }
 
 export async function deleteSessionFromDB(sessionId, userId) {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb || !userId) return
   await sb.from('sessions').delete().eq('id', sessionId).eq('user_id', userId)
 }
 
 // ── Streak DB ────────────────────────────────────────────────────
 export async function saveStreakToDB(streakData, userId) {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb || !userId) return
 
   await sb.from('streaks').upsert({
@@ -150,7 +149,7 @@ export async function saveStreakToDB(streakData, userId) {
 }
 
 export async function fetchStreakFromDB(userId) {
-  const sb = await getClient()
+  const sb = getClient()
   if (!sb || !userId) return null
 
   const { data, error } = await sb

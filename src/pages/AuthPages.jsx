@@ -3,7 +3,21 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store'
 import { Button, Input, Card } from '../components/ui'
 import { Zap, Database } from 'lucide-react'
-import { signUp, signIn, isConfigured } from '../lib/supabase'
+import { signUp, signIn, isConfigured, isNetworkError } from '../lib/supabase'
+
+function registerLocal(form) {
+  const id = crypto.randomUUID()
+  localStorage.setItem(`user_${form.email}`, JSON.stringify({ ...form, id }))
+  return { id, name: form.name, email: form.email, targetRole: form.targetRole }
+}
+
+function loginLocal(email, password) {
+  const stored = localStorage.getItem(`user_${email}`)
+  if (!stored) throw new Error('No account found. Please register.')
+  const user = JSON.parse(stored)
+  if (user.password !== password) throw new Error('Incorrect password.')
+  return { id: user.id, name: user.name, email: user.email, targetRole: user.targetRole }
+}
 
 // ── Login ───────────────────────────────────────────────────────
 export function LoginPage() {
@@ -34,6 +48,17 @@ export function LoginPage() {
         })
         navigate('/dashboard')
       } catch (e) {
+        if (isNetworkError(e)) {
+          try {
+            const user = loginLocal(email, password)
+            login(user)
+            navigate('/dashboard')
+            return
+          } catch (localErr) {
+            setError('Cannot reach Supabase. Check VITE_SUPABASE_URL in .env, or register in local mode by removing those vars.')
+            return
+          }
+        }
         setError(e.message || 'Login failed.')
       } finally {
         setLoading(false)
@@ -43,12 +68,15 @@ export function LoginPage() {
 
     // ── localStorage fallback ──────────────────────────────────
     await new Promise(r => setTimeout(r, 600))
-    const stored = localStorage.getItem(`user_${email}`)
-    if (!stored) { setError('No account found. Please register.'); setLoading(false); return }
-    const user = JSON.parse(stored)
-    if (user.password !== password) { setError('Incorrect password.'); setLoading(false); return }
-    login({ id: user.id, name: user.name, email: user.email, targetRole: user.targetRole })
-    navigate('/dashboard')
+    try {
+      const user = loginLocal(email, password)
+      login(user)
+      navigate('/dashboard')
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -97,6 +125,12 @@ export function RegisterPage() {
         })
         navigate('/dashboard')
       } catch (e) {
+        if (isNetworkError(e)) {
+          const user = registerLocal(form)
+          login(user)
+          navigate('/dashboard')
+          return
+        }
         setError(e.message || 'Registration failed.')
       } finally {
         setLoading(false)
@@ -106,10 +140,10 @@ export function RegisterPage() {
 
     // ── localStorage fallback ──────────────────────────────────
     await new Promise(r => setTimeout(r, 600))
-    const id = crypto.randomUUID()
-    localStorage.setItem(`user_${form.email}`, JSON.stringify({ ...form, id }))
-    login({ id, name: form.name, email: form.email, targetRole: form.targetRole })
+    const user = registerLocal(form)
+    login(user)
     navigate('/dashboard')
+    setLoading(false)
   }
 
   return (

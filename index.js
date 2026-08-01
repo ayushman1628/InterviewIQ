@@ -1,6 +1,6 @@
 import express from 'express'
 import { PORT, ALLOWED_ORIGINS, MODEL, getOpenRouterKey } from './config/env.js'
-import { createCorsMiddleware } from './middleware/cors.js'
+import { createCorsMiddleware } from './middleware/core.js'
 import aiRouter from './routes/ai.js'
 import extractRouter from './routes/extract.js'
 import executeRouter from './routes/execute.js'
