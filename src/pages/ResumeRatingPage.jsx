@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuthStore } from '../store'
 import { AppLayout, PageHeader } from '../components/layout/AppLayout'
 import { Badge, Button, Card, ScoreRing } from '../components/ui'
-import { rateResume } from '../lib/api'
+import { rateResume, API_BASE } from '../lib/api'
 import { FileText, Sparkles, RotateCcw, Upload, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
 const GRADE_COLOR = { A: 'success', B: 'cyan', C: 'warning', D: 'warning', F: 'danger' }
@@ -85,7 +85,7 @@ export default function ResumeRatingPage() {
       try {
         const formData = new FormData()
         formData.append('file', file)
-        const res = await fetch('/api/extract-text', { method: 'POST', body: formData })
+        const res = await fetch(`${API_BASE}/api/extract-text`, { method: 'POST', body: formData })
         if (!res.ok) {
           const err = await res.json().catch(() => ({}))
           throw new Error(err.error || 'Text extraction failed')

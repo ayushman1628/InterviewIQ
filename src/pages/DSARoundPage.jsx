@@ -5,7 +5,7 @@ import { Button, Badge, ProgressBar, Spinner } from '../components/ui'
 import { CodeEditor } from '../components/ui/CodeEditor'
 import { useQuestionTimer } from '../hooks/useQuestionTimer'
 import { useTTS } from '../hooks/useTTS'
-import { generateDSAQuestions, evaluateCode } from '../lib/api'
+import { generateDSAQuestions, evaluateCode, API_BASE } from '../lib/api'
 import { Zap, ChevronRight, Lightbulb, Code2, XCircle, Send, Volume2, VolumeX, Play, Terminal } from 'lucide-react'
 
 const TOPICS = [
@@ -180,7 +180,7 @@ function DSASession({ questions, config, onFinish }) {
     if (hintsUsed >= 3) return
     setLoadingHint(true); setHintsUsed(h => h + 1)
     try {
-      const res = await fetch('/api/gemini', {
+      const res = await fetch(`${API_BASE}/api/gemini`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           system: 'You are helping a student with a DSA problem. Give a hint without revealing the full solution. Be concise — max 3 sentences.',
@@ -199,7 +199,7 @@ function DSASession({ questions, config, onFinish }) {
     if (!code.trim()) return
     setExecuting(true); setExecResult(null)
     try {
-      const res = await fetch('/api/execute', {
+      const res = await fetch(`${API_BASE}/api/execute`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, language, stdin: '' }),
       })

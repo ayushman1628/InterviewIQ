@@ -1,4 +1,5 @@
-const PROXY = (import.meta.env.VITE_API_URL || '') + '/api/gemini'
+export const API_BASE = import.meta.env.VITE_API_URL || ''
+const PROXY = API_BASE + '/api/gemini'
 
 async function callGemini(system, prompt, maxTokens = 1500) {
   const res = await fetch(PROXY, {

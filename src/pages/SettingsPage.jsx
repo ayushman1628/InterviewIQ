@@ -4,6 +4,7 @@ import { AppLayout, PageHeader } from '../components/layout/AppLayout'
 import { Button, Card, Input } from '../components/ui'
 import { CheckCircle, ExternalLink, Key, User, Server, Database, Code2 } from 'lucide-react'
 import { isConfigured } from '../lib/supabase'
+import { API_BASE } from '../lib/api'
 
 const ROLES = [
   'Frontend Engineer','Backend Engineer','Full Stack Engineer',
@@ -26,7 +27,7 @@ export default function SettingsPage() {
   const handleTestServer = async () => {
     setTesting(true); setTestResult(null)
     try {
-      const res = await fetch('/api/health')
+      const res = await fetch(`${API_BASE}/api/health`)
       const data = await res.json()
       if (res.ok) setTestResult({ ok: true, msg: `✓ Server running · Model active · Key: ${data.key ? '✓' : '✗'}` })
       else        setTestResult({ ok: false, msg: 'Server responded with error.' })
